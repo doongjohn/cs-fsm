@@ -55,15 +55,15 @@ where D : class
         Func<D, Flow<D>> next
     ) { ... }
 
-    // if next retunrs null, then it will run `state` if not transition to `next`
-    // the first `Do` will be executed when this flow is entered
+    // - if next retunrs null, then it will run `state` if not transition to `next`
+    // - the first `Do` will be executed when this flow is entered
     public Flow<D> Do(
         string name,
         Func<D, IState<D>> state,
         Func<D, string?> next
     ) { ... }
 
-    // transition to the next flow
+    // - transition to the next flow
     public Flow<D> To(
         string name,
         Func<D, Flow<D>> next
@@ -78,13 +78,13 @@ where D : class
 class Fsm<D>
 where D : class
 {
-    // initialize Fsm
+    // - initialize Fsm
     public Fsm(
         D data,
         Flow<D> startingFlow
     ) { ... }
 
-    // execute this method to update current flow
+    // - execute this method to update this state machine
     public void Update() { ... }
 }
 ```
