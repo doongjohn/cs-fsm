@@ -71,11 +71,11 @@ static class Monster
                 state: data => followTarget,
                 next: data =>
                     data.targetDistance == 0
-                    ? "attak"
+                    ? "attack"
                     : null
             )
             .Do(
-                name: "attak",
+                name: "attack",
                 state: data => attackTarget,
                 next: data =>
                     data.isAttackSuccess
