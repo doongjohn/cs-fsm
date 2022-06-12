@@ -2,9 +2,15 @@
 
 my ~~shitty~~ take on finite state machine
 
+## References
+
+> <img width="24px" src="https://yt3.ggpht.com/ytc/AKedOLQMDfbOQvRp6eZg9qu0v8p_iN5mgIge9D-gTAMjmA=s48-c-k-c0x00ffffff-no-rj"></img> The AI of Half-Life: Finite State Machines | AI 101\
+> <https://www.youtube.com/watch?v=JyF0oyarz4U>
+
 ## Features
 
-- state does not contain transition logic (flow does)
+- hierarchical finite state machine
+    - state does not contain transition logic (flow does)
 - single file (no dependency)
 - you can use my awesome api
 
