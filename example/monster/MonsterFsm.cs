@@ -6,6 +6,14 @@ class MonsterData
     public bool hit = false;
     public bool isHealing = false;
     public int targetDistance = 100;
+
+    public void Damage(int amount)
+    {
+        hit = true;
+        health -= amount;
+        if (health < 0)
+            health = 0;
+    }
 }
 
 static class Monster
@@ -65,9 +73,6 @@ static class Monster
             );
 
         // create fsm
-        return new Fsm<MonsterData>(
-            data: monsterData,
-            startingFlow: flowNormal
-        );
+        return new Fsm<MonsterData>(monsterData, flowNormal);
     }
 }

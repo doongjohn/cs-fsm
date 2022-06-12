@@ -16,25 +16,20 @@ static class MonsterExample
             switch (key.Key)
             {
                 case ConsoleKey.Enter:
-                    monsterFsm.data.hit = true;
-                    monsterFsm.data.health -= 10;
-                    if (monsterFsm.data.health < 0)
-                        monsterFsm.data.health = 0;
+                    monsterFsm.data.Damage(10);
                     Console.WriteLine("[input] hit monster -10");
                     break;
 
                 case ConsoleKey.RightArrow:
                     monsterFsm.data.targetDistance += 10;
-                    Console.WriteLine("[input] increase distance +10");
-                    Console.WriteLine($"distance = {monsterFsm.data.targetDistance}");
+                    Console.WriteLine($"[input] distance + 10 = {monsterFsm.data.targetDistance}");
                     break;
 
                 case ConsoleKey.LeftArrow:
                     monsterFsm.data.targetDistance -= 10;
                     if (monsterFsm.data.targetDistance < 0)
                         monsterFsm.data.targetDistance = 0;
-                    Console.WriteLine("[input] decrease distance -10");
-                    Console.WriteLine($"distance = {monsterFsm.data.targetDistance}");
+                    Console.WriteLine($"[input] distance - 10 = {monsterFsm.data.targetDistance}");
                     break;
             }
         } while ((key = Console.ReadKey(true)).Key != ConsoleKey.Escape);

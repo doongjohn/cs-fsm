@@ -1,13 +1,15 @@
 namespace Fsm
 {
-    interface IState<D>
+    abstract class State<D>
     where D : class
     {
-        void OnEnter(D data) =>
+        public virtual void OnEnter(D data) =>
             Console.WriteLine($"[FSM] state enter: {this.GetType()}");
-        void OnExit(D data) =>
+
+        public virtual void OnExit(D data) =>
             Console.WriteLine($"[FSM] state exit: {this.GetType()}");
-        void OnUpdate(D data) =>
+
+        public virtual void OnUpdate(D data) =>
             Console.WriteLine($"[FSM] state update: {this.GetType()}");
     }
 
@@ -17,7 +19,7 @@ namespace Fsm
         public interface INode { }
         public struct NodeState : INode
         {
-            public Func<D, IState<D>> state;
+            public Func<D, State<D>> state;
             public Func<D, string?> next;
         }
         public struct NodeFlow : INode
@@ -25,36 +27,53 @@ namespace Fsm
             public Func<D, Flow<D>> next;
         }
 
-        private readonly Dictionary<string, int> indexMap;
         private readonly List<(Func<D, bool> condition, INode node)> forceNodes;
         private readonly List<INode> nodes;
+
+        // NOTE: I can avoid using dictionary if I use the INode variable
+        // but... I am too lazy to do that every time
+        private readonly Dictionary<string, int> indexMap;
+
         private INode? currentNode;
-        private IState<D>? currentState;
+        private State<D>? currentState;
 
         public Flow()
         {
-            indexMap = new();
             forceNodes = new();
             nodes = new();
+            indexMap = new();
         }
 
-        public Flow<D> ForceDo(Func<D, bool> condition, Func<D, IState<D>> state, Func<D, string?> next)
+        public Flow<D> ForceDo(
+            Func<D, bool> condition,
+            Func<D, State<D>> state,
+            Func<D, string?> next)
         {
             forceNodes.Add((condition, new NodeState() { state = state, next = next }));
             return this;
         }
-        public Flow<D> ForceTo(Func<D, bool> condition, Func<D, Flow<D>> next)
+
+        public Flow<D> ForceTo(
+            Func<D, bool> condition,
+            Func<D, Flow<D>> next)
         {
             forceNodes.Add((condition, new NodeFlow() { next = next }));
             return this;
         }
-        public Flow<D> Do(string name, Func<D, IState<D>> state, Func<D, string?> next)
+
+        public Flow<D> Do(
+            string name,
+            Func<D, State<D>> state,
+            Func<D, string?> next)
         {
             indexMap[name] = nodes.Count;
             nodes.Add(new NodeState() { state = state, next = next });
             return this;
         }
-        public Flow<D> To(string name, Func<D, Flow<D>> next)
+
+        public Flow<D> To(
+            string name,
+            Func<D, Flow<D>> next)
         {
             indexMap[name] = nodes.Count;
             nodes.Add(new NodeFlow() { next = next });
@@ -65,22 +84,15 @@ namespace Fsm
         {
             return nodes[indexMap[name]];
         }
-        public NodeState GetNodeState(string name)
-        {
-            return (NodeState)nodes[indexMap[name]];
-        }
-        public NodeFlow GetNodeFlow(string name)
-        {
-            return (NodeFlow)nodes[indexMap[name]];
-        }
 
         public INode? GetCurrentNode()
         {
             return currentNode;
         }
+
         public void SetCurrentNode(INode node)
         {
-            this.currentNode = node;
+            currentNode = node;
         }
 
         public void SetInitialNode(D data)
@@ -89,9 +101,9 @@ namespace Fsm
             currentState = null;
 
             // check force nodes
-            foreach (var forceNodeTuple in forceNodes)
+            for (int i = 0; i < forceNodes.Count; ++i)
             {
-                var (condition, node) = forceNodeTuple;
+                var (condition, node) = forceNodes[i];
                 if (condition(data))
                 {
                     currentNode = node;
@@ -100,51 +112,44 @@ namespace Fsm
             }
 
             // check normal nodes
-            foreach (var node in nodes)
+            var firstNode = nodes[0];
+            if (firstNode is NodeState)
             {
-                if (node is NodeState)
-                {
-                    var state = ((NodeState)node).state(data);
-                    currentNode = node;
-                    currentState = state;
-                    return;
-                }
-
-                if (node is NodeFlow)
-                {
-                    currentNode = node;
-                    return;
-                }
+                var state = ((NodeState)firstNode).state(data);
+                currentNode = firstNode;
+                currentState = state;
+            }
+            else
+            {
+                currentNode = firstNode;
             }
         }
 
         public INode? GetNextNode(D data)
         {
-            foreach (var nodeTuple in forceNodes)
+            for (int i = 0; i < forceNodes.Count; ++i)
             {
-                var (condition, node) = nodeTuple;
+                var (condition, node) = forceNodes[i];
                 if (condition(data))
                     return node;
             }
 
+            // unwrap current node
+            var currentNode = this.currentNode!;
+
             if (currentNode is NodeState)
             {
-                var nodeName = ((NodeState)currentNode).next(data);
-                if (nodeName != null)
-                    return this.GetNode(nodeName);
-                else
-                    return null;
+                var nextNodeName = ((NodeState)currentNode).next(data);
+                if (nextNodeName != null)
+                    return this.GetNode(nextNodeName);
+
+                return null;
             }
 
-            if (currentNode is NodeFlow)
-            {
-                return currentNode;
-            }
-
-            return null;
+            return currentNode;
         }
 
-        public void SetState(D data, IState<D> newState)
+        public void SetState(D data, State<D> newState)
         {
             // self transition is not allowed
             // TODO: maybe somehow allow self transition?
@@ -160,10 +165,12 @@ namespace Fsm
         {
             currentState?.OnEnter(data);
         }
+
         public void OnExit(D data)
         {
             currentState?.OnExit(data);
         }
+
         public void OnUpdate(D data)
         {
             currentState?.OnUpdate(data);
@@ -201,7 +208,7 @@ namespace Fsm
             }
             else
             {
-                // TODO: prevent infinite loop
+                // NOTE: this can cause infinite loop
                 // recursively find next state
                 return this.RecFindNext((Flow<D>.NodeFlow)node);
             }
@@ -209,7 +216,7 @@ namespace Fsm
 
         public void Update()
         {
-            // REVIEW: this may cause an issue
+            // initialize current flow
             if (currentFlow.GetCurrentNode() == null)
             {
                 currentFlow.SetInitialNode(data);
@@ -220,7 +227,6 @@ namespace Fsm
             var nextNode = currentFlow.GetNextNode(data);
             if (nextNode != null)
             {
-                // change current node
                 currentFlow.SetCurrentNode(nextNode);
 
                 if (nextNode is Flow<D>.NodeState)
@@ -230,11 +236,9 @@ namespace Fsm
                     var state = nodeState.state(data);
                     currentFlow.SetState(data, state);
                 }
-                else if (nextNode is Flow<D>.NodeFlow)
+                else
                 {
                     var (nextFlow, nextNodeState) = this.RecFindNext((Flow<D>.NodeFlow)nextNode);
-
-                    // change current node
                     currentFlow.SetCurrentNode(nextNodeState);
 
                     // change current flow
