@@ -3,13 +3,13 @@ using Fsm;
 class MonsterData
 {
     public int health = 100;
-    public bool hit = false;
+    public int targetDistance = 50;
+    public bool isHit = false;
     public bool isHealing = false;
-    public int targetDistance = 100;
 
     public void Damage(int amount)
     {
-        hit = true;
+        isHit = true;
         health -= amount;
         if (health < 0)
             health = 0;
@@ -18,10 +18,8 @@ class MonsterData
 
 static class Monster
 {
-    public static Fsm<MonsterData> createFsm()
+    public static Fsm<MonsterData> createFsm(MonsterData monsterData)
     {
-        var monsterData = new MonsterData();
-
         var idle = new StateIdle();
         var selfHeal = new StateSelfHeal();
         var hitStagger = new StateHitStagger();
@@ -35,35 +33,29 @@ static class Monster
 
         flowNormal
             .ForceTo(
-                condition: data => data.hit,
+                condition: data => data.isHit,
                 next: data => flowHitStagger
             )
             .Do(
                 name: "idle",
                 state: data => idle,
                 next: data =>
-                {
-                    if (data.health <= 50 && idle.timer >= 3)
-                        return "heal";
-
-                    return null;
-                }
+                    data.health <= 50 && idle.timer >= 3
+                    ? "heal"
+                    : null
             )
             .Do(
                 name: "heal",
                 state: data => selfHeal,
                 next: data =>
-                {
-                    if (data.health >= 100)
-                        return "idle";
-
-                    return null;
-                }
+                    data.health >= 100
+                    ? "idle"
+                    : null
             );
 
         flowHitStagger
             .ForceTo(
-                condition: data => !data.hit,
+                condition: data => !data.isHit,
                 next: data => flowNormal
             )
             .Do(

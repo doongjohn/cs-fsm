@@ -62,7 +62,7 @@ class StateHitStagger : StateMonster
 {
     public override void OnUpdate(MonsterData data)
     {
-        data.hit = false;
+        data.isHit = false;
         Console.WriteLine($"Oh no! I got hit!");
     }
 }

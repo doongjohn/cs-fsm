@@ -69,8 +69,8 @@ where D : class
         Func<D, Flow<D>> next
     ) { ... }
 
-    // NOTE: every lambda parameters of `ForceDo`, `ForceTo`, `Do`, `To` must be a pure function
-    // because it runs multiple times per update
+    // NOTE: every lambda parameters of `ForceDo`, `ForceTo`, `Do`, `To` must not
+    // mutate outside values because it runs multiple times per update
 }
 ```
 
