@@ -1,3 +1,4 @@
+using System;
 using StateMonster = Fsm.State<MonsterData>;
 
 class StateIdle : StateMonster

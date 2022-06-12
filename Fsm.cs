@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Fsm
 {
     abstract class State<D>
@@ -30,9 +33,9 @@ namespace Fsm
         private readonly List<(Func<D, bool> condition, INode node)> forceNodes;
         private readonly List<INode> nodes;
 
-        // NOTE: I can avoid using dictionary if I use the INode variable
+        // NOTE: I can avoid using dictionary if I create the INode variable
         // but... I am too lazy to do that every time
-        private readonly Dictionary<string, int> indexMap;
+        private readonly Dictionary<string, int> indices;
 
         private INode? currentNode;
         private State<D>? currentState;
@@ -41,7 +44,7 @@ namespace Fsm
         {
             forceNodes = new();
             nodes = new();
-            indexMap = new();
+            indices = new();
         }
 
         public Flow<D> ForceDo(
@@ -66,7 +69,7 @@ namespace Fsm
             Func<D, State<D>> state,
             Func<D, string?> next)
         {
-            indexMap[name] = nodes.Count;
+            indices[name] = nodes.Count;
             nodes.Add(new NodeState() { state = state, next = next });
             return this;
         }
@@ -75,14 +78,14 @@ namespace Fsm
             string name,
             Func<D, Flow<D>> next)
         {
-            indexMap[name] = nodes.Count;
+            indices[name] = nodes.Count;
             nodes.Add(new NodeFlow() { next = next });
             return this;
         }
 
         public INode GetNode(string name)
         {
-            return nodes[indexMap[name]];
+            return nodes[indices[name]];
         }
 
         public INode? GetCurrentNode()
@@ -127,6 +130,7 @@ namespace Fsm
 
         public INode? GetNextNode(D data)
         {
+            // check force nodes
             for (int i = 0; i < forceNodes.Count; ++i)
             {
                 var (condition, node) = forceNodes[i];
@@ -140,7 +144,7 @@ namespace Fsm
             if (currentNode is NodeState)
             {
                 var nextNodeName = ((NodeState)currentNode).next(data);
-                if (nextNodeName != null)
+                if (nextNodeName is not null)
                     return this.GetNode(nextNodeName);
 
                 return null;
@@ -217,7 +221,7 @@ namespace Fsm
         public void Update()
         {
             // initialize current flow
-            if (currentFlow.GetCurrentNode() == null)
+            if (currentFlow.GetCurrentNode() is null)
             {
                 currentFlow.SetInitialNode(data);
                 currentFlow.OnEnter(data);
@@ -225,7 +229,7 @@ namespace Fsm
 
             // try get next node
             var nextNode = currentFlow.GetNextNode(data);
-            if (nextNode != null)
+            if (nextNode is not null)
             {
                 currentFlow.SetCurrentNode(nextNode);
 

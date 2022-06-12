@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+
 static class MonsterExample
 {
     public static void Run()
