@@ -150,9 +150,6 @@ namespace Fsm
                     return node;
             }
 
-            // unwrap current node
-            var currentNode = this.currentNode!;
-
             if (currentNode is NodeState)
             {
                 var nextNodeName = ((NodeState)currentNode).next(data);
@@ -214,7 +211,7 @@ namespace Fsm
             // initialize next flow
             nextFlow.SetInitialNode(data);
 
-            // unwrap current node
+            // current node shouldn't be null after `SetInitialNode()` is called
             var node = nextFlow.GetCurrentNode()!;
 
             if (node is Flow<D>.NodeState)
