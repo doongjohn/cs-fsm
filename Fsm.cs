@@ -8,21 +8,21 @@ namespace Fsm
     {
         public virtual void OnEnter(D data)
         {
-#if DEBUG
+#if FSM_DEBUG
             Console.WriteLine($"[FSM] state enter: {this.GetType()}");
 #endif
         }
 
         public virtual void OnExit(D data)
         {
-#if DEBUG
+#if FSM_DEBUG
             Console.WriteLine($"[FSM] state exit: {this.GetType()}");
 #endif
         }
 
         public virtual void OnUpdate(D data)
         {
-#if DEBUG
+#if FSM_DEBUG
             Console.WriteLine($"[FSM] state update: {this.GetType()}");
 #endif
         }
