@@ -6,6 +6,7 @@ class MonsterData
     public int targetDistance = 50;
     public bool isHit = false;
     public bool isHealing = false;
+    public bool isAttackSuccess = false;
 
     public void Damage(int amount)
     {
@@ -56,12 +57,34 @@ static class Monster
         flowHitStagger
             .ForceTo(
                 condition: data => !data.isHit,
-                next: data => flowNormal
+                next: data => flowHitResponse
             )
             .Do(
                 name: "stagger",
                 state: data => hitStagger,
                 next: data => null
+            );
+
+        flowHitResponse
+            .Do(
+                name: "aggro",
+                state: data => followTarget,
+                next: data =>
+                    data.targetDistance == 0
+                    ? "attak"
+                    : null
+            )
+            .Do(
+                name: "attak",
+                state: data => attackTarget,
+                next: data =>
+                    data.isAttackSuccess
+                    ? "finish"
+                    : null
+            )
+            .To(
+                name: "finish",
+                next: data => flowNormal
             );
 
         // create fsm

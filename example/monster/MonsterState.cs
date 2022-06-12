@@ -53,8 +53,14 @@ class StateFollowTarget : StateMonster
 
 class StateAttackTarget : StateMonster
 {
+    public override void OnExit(MonsterData data)
+    {
+        data.isAttackSuccess = false;
+        base.OnExit(data);
+    }
     public override void OnUpdate(MonsterData data)
     {
+        data.isAttackSuccess = true;
         Console.WriteLine($"I punch you!");
     }
 }

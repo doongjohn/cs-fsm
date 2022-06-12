@@ -20,6 +20,8 @@ static class MonsterExample
         ConsoleKeyInfo key = new();
         do
         {
+            // monsterFsm.Update();
+
             switch (key.Key)
             {
                 case ConsoleKey.Enter:

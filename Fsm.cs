@@ -31,25 +31,36 @@ namespace Fsm
     class Flow<D>
     where D : class
     {
-        public interface INode { }
-        public struct NodeState : INode
+        public abstract class Node { }
+        public class NodeState : Node
         {
             public Func<D, State<D>> state;
             public Func<D, string?> next;
+
+            public NodeState(Func<D, State<D>> state, Func<D, string?> next)
+            {
+                this.state = state;
+                this.next = next;
+            }
         }
-        public struct NodeFlow : INode
+        public class NodeFlow : Node
         {
             public Func<D, Flow<D>> next;
+
+            public NodeFlow(Func<D, Flow<D>> next)
+            {
+                this.next = next;
+            }
         }
 
-        private readonly List<(Func<D, bool> condition, INode node)> forceNodes;
-        private readonly List<INode> nodes;
+        private readonly List<(Func<D, bool> condition, Node node)> forceNodes;
+        private readonly List<Node> nodes;
 
         // NOTE: I can avoid using dictionary if I create the INode variable
         // but... I am too lazy to do that every time
         private readonly Dictionary<string, int> indices;
 
-        private INode? currentNode;
+        private Node? currentNode;
         private State<D>? currentState;
 
         public Flow()
@@ -64,7 +75,7 @@ namespace Fsm
             Func<D, State<D>> state,
             Func<D, string?> next)
         {
-            forceNodes.Add((condition, new NodeState() { state = state, next = next }));
+            forceNodes.Add((condition, new NodeState(state, next)));
             return this;
         }
 
@@ -72,7 +83,7 @@ namespace Fsm
             Func<D, bool> condition,
             Func<D, Flow<D>> next)
         {
-            forceNodes.Add((condition, new NodeFlow() { next = next }));
+            forceNodes.Add((condition, new NodeFlow(next)));
             return this;
         }
 
@@ -82,7 +93,7 @@ namespace Fsm
             Func<D, string?> next)
         {
             indices[name] = nodes.Count;
-            nodes.Add(new NodeState() { state = state, next = next });
+            nodes.Add(new NodeState(state, next));
             return this;
         }
 
@@ -91,21 +102,21 @@ namespace Fsm
             Func<D, Flow<D>> next)
         {
             indices[name] = nodes.Count;
-            nodes.Add(new NodeFlow() { next = next });
+            nodes.Add(new NodeFlow(next));
             return this;
         }
 
-        public INode GetNode(string name)
+        public Node GetNodeByName(string name)
         {
             return nodes[indices[name]];
         }
 
-        public INode? GetCurrentNode()
+        public Node? GetCurrentNode()
         {
             return currentNode;
         }
 
-        public void SetCurrentNode(INode node)
+        public void SetCurrentNode(Node node)
         {
             currentNode = node;
         }
@@ -113,7 +124,6 @@ namespace Fsm
         public void SetInitialNode(D data)
         {
             currentNode = null;
-            currentState = null;
 
             // check force nodes
             for (int i = 0; i < forceNodes.Count; ++i)
@@ -127,20 +137,10 @@ namespace Fsm
             }
 
             // check normal nodes
-            var firstNode = nodes[0];
-            if (firstNode is NodeState)
-            {
-                var state = ((NodeState)firstNode).state(data);
-                currentNode = firstNode;
-                currentState = state;
-            }
-            else
-            {
-                currentNode = firstNode;
-            }
+            currentNode = nodes[0];
         }
 
-        public INode? GetNextNode(D data)
+        public Node? GetNextNode(D data)
         {
             // check force nodes
             for (int i = 0; i < forceNodes.Count; ++i)
@@ -150,11 +150,14 @@ namespace Fsm
                     return node;
             }
 
+            if (currentNode is null)
+                return nodes[0];
+
             if (currentNode is NodeState)
             {
                 var nextNodeName = ((NodeState)currentNode).next(data);
                 if (nextNodeName is not null)
-                    return this.GetNode(nextNodeName);
+                    return this.GetNodeByName(nextNodeName);
 
                 return null;
             }
@@ -203,39 +206,41 @@ namespace Fsm
             this.currentFlow = startingFlow;
         }
 
-        private (Flow<D> nextFlow, Flow<D>.NodeState nextNodeState) RecFindNext(Flow<D>.NodeFlow nodeFlow)
+        private (Flow<D> nextFlow, Flow<D>.NodeState nextNodeState) RecFindNext(Flow<D> currentFlow, Flow<D>.Node currentNode)
         {
-            // get next flow
-            var nextFlow = nodeFlow.next(data);
+            // NOTE: this function can loop infinitely
 
-            // initialize next flow
-            nextFlow.SetInitialNode(data);
-
-            // current node shouldn't be null after `SetInitialNode()` is called
-            var node = nextFlow.GetCurrentNode()!;
-
-            if (node is Flow<D>.NodeState)
+            if (currentNode is Flow<D>.NodeState)
             {
-                // next state is found
-                return (nextFlow, (Flow<D>.NodeState)node);
+                var currentNodeState = (Flow<D>.NodeState)currentNode;
+                var nextNodeName = currentNodeState.next(data);
+                if (nextNodeName is not null)
+                {
+                    // transition is found
+                    var node = currentFlow.GetNodeByName(nextNodeName);
+                    return this.RecFindNext(currentFlow, node);
+                }
+                else
+                {
+                    // no more transition is found
+                    // stop recursing
+                    return (currentFlow, currentNodeState);
+                }
             }
             else
             {
-                // NOTE: this can cause infinite loop
-                // recursively find next state
-                return this.RecFindNext((Flow<D>.NodeFlow)node);
+                // get next flow
+                var nextFlow = ((Flow<D>.NodeFlow)currentNode).next(data);
+                nextFlow.SetInitialNode(data);
+
+                // current node of `nextFlow` shouldn't be null after `SetInitialNode()` is called
+                var nextNode = nextFlow.GetCurrentNode()!;
+                return this.RecFindNext(nextFlow, nextNode);
             }
         }
 
         public void Update()
         {
-            // initialize current flow
-            if (currentFlow.GetCurrentNode() is null)
-            {
-                currentFlow.SetInitialNode(data);
-                currentFlow.OnEnter(data);
-            }
-
             // try get next node
             var nextNode = currentFlow.GetNextNode(data);
             if (nextNode is not null)
@@ -251,8 +256,7 @@ namespace Fsm
                 }
                 else
                 {
-                    var (nextFlow, nextNodeState) = this.RecFindNext((Flow<D>.NodeFlow)nextNode);
-                    currentFlow.SetCurrentNode(nextNodeState);
+                    var (nextFlow, nextNodeState) = this.RecFindNext(currentFlow, nextNode);
 
                     // change current flow
                     if (nextFlow != currentFlow)
@@ -261,6 +265,8 @@ namespace Fsm
                         currentFlow = nextFlow;
                         currentFlow.OnEnter(data);
                     }
+
+                    currentFlow.SetCurrentNode(nextNodeState);
 
                     // change current state
                     var state = nextNodeState.state(data);
