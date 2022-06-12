@@ -8,7 +8,7 @@ class StateIdle : StateMonster
     public override void OnExit(MonsterData data)
     {
         timer = 0;
-        Console.WriteLine($"[FSM] state exit: {this.GetType()}");
+        base.OnExit(data);
     }
     public override void OnUpdate(MonsterData data)
     {
@@ -22,12 +22,12 @@ class StateSelfHeal : StateMonster
     public override void OnEnter(MonsterData data)
     {
         data.isHealing = true;
-        Console.WriteLine($"[FSM] state enter: {this.GetType()}");
+        base.OnEnter(data);
     }
     public override void OnExit(MonsterData data)
     {
         data.isHealing = false;
-        Console.WriteLine($"[FSM] state exit: {this.GetType()}");
+        base.OnExit(data);
     }
     public override void OnUpdate(MonsterData data)
     {
@@ -76,7 +76,7 @@ class StateGoHome : StateMonster
     }
     public override void OnUpdate(MonsterData data)
     {
-        data.targetDistance += data.targetDistance < 100 ? 5 : -5;
+        data.targetDistance += data.targetDistance < 50 ? 5 : -5;
         Console.WriteLine($"distance = {data.targetDistance}");
     }
 }

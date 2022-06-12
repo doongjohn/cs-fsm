@@ -6,14 +6,26 @@ namespace Fsm
     abstract class State<D>
     where D : class
     {
-        public virtual void OnEnter(D data) =>
+        public virtual void OnEnter(D data)
+        {
+#if DEBUG
             Console.WriteLine($"[FSM] state enter: {this.GetType()}");
+#endif
+        }
 
-        public virtual void OnExit(D data) =>
+        public virtual void OnExit(D data)
+        {
+#if DEBUG
             Console.WriteLine($"[FSM] state exit: {this.GetType()}");
+#endif
+        }
 
-        public virtual void OnUpdate(D data) =>
+        public virtual void OnUpdate(D data)
+        {
+#if DEBUG
             Console.WriteLine($"[FSM] state update: {this.GetType()}");
+#endif
+        }
     }
 
     class Flow<D>
