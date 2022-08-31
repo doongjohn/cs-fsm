@@ -1,34 +1,58 @@
 using System;
 using System.Collections.Generic;
 
+#if FSM_DEBUG_UNITY
+using UnityEngine;
+#endif
+
 namespace Fsm
 {
-    abstract class State<D>
+    public abstract class State<D>
     where D : class
     {
         public virtual void OnEnter(D data)
         {
-#if FSM_DEBUG
+#if FSM_DEBUG_CONSOLE
             Console.WriteLine($"[FSM] state enter: {this.GetType()}");
 #endif
-        }
 
-        public virtual void OnExit(D data)
-        {
-#if FSM_DEBUG
-            Console.WriteLine($"[FSM] state exit: {this.GetType()}");
+#if FSM_DEBUG_UNITY
+            Debug.Log($"[FSM] state enter: {this.GetType()}");
 #endif
         }
+        public virtual void OnExit(D data)
+        {
+#if FSM_DEBUG_CONSOLE
+            Console.WriteLine($"[FSM] state exit: {this.GetType()}");
+#endif
 
+#if FSM_DEBUG_UNITY
+            Debug.Log($"[FSM] state exit: {this.GetType()}");
+#endif
+        }
         public virtual void OnUpdate(D data)
         {
-#if FSM_DEBUG
-            Console.WriteLine($"[FSM] state update: {this.GetType()}");
+#if FSM_DEBUG_CONSOLE
+                        Console.WriteLine($"[FSM] state update: {this.GetType()}");
+#endif
+
+#if FSM_DEBUG_UNITY
+                        Debug.Log($"[FSM] state update: {this.GetType()}");
+#endif
+        }
+        public virtual void OnFixedUpdate(D data)
+        {
+#if FSM_DEBUG_CONSOLE
+                        Console.WriteLine($"[FSM] state fixed update: {this.GetType()}");
+#endif
+
+#if FSM_DEBUG_UNITY
+                        Debug.Log($"[FSM] state fixed update: {this.GetType()}");
 #endif
         }
     }
 
-    class Flow<D>
+    public class Flow<D>
     where D : class
     {
         public abstract class Node { }
@@ -55,9 +79,10 @@ namespace Fsm
 
         private readonly List<(Func<D, bool> condition, Node node)> forceNodes;
         private readonly List<Node> nodes;
+        private Action<D>? onEnter;
+        private Action<D>? onExit;
 
-        // NOTE: I can avoid using dictionary if I create the INode variable
-        // but... I am too lazy to do that every time
+        // map node name to index
         private readonly Dictionary<string, int> indices;
 
         private Node? currentNode;
@@ -65,9 +90,20 @@ namespace Fsm
 
         public Flow()
         {
-            forceNodes = new();
-            nodes = new();
-            indices = new();
+            this.forceNodes = new();
+            this.nodes = new();
+            this.indices = new();
+        }
+
+        public Flow<D> OnEnter(Action<D> onEnter)
+        {
+            this.onEnter = onEnter;
+            return this;
+        }
+        public Flow<D> OnExit(Action<D> onExit)
+        {
+            this.onExit = onExit;
+            return this;
         }
 
         public Flow<D> ForceDo(
@@ -75,7 +111,7 @@ namespace Fsm
             Func<D, State<D>> state,
             Func<D, string?> next)
         {
-            forceNodes.Add((condition, new NodeState(state, next)));
+            this.forceNodes.Add((condition, new NodeState(state, next)));
             return this;
         }
 
@@ -83,7 +119,7 @@ namespace Fsm
             Func<D, bool> condition,
             Func<D, Flow<D>> next)
         {
-            forceNodes.Add((condition, new NodeFlow(next)));
+            this.forceNodes.Add((condition, new NodeFlow(next)));
             return this;
         }
 
@@ -92,8 +128,8 @@ namespace Fsm
             Func<D, State<D>> state,
             Func<D, string?> next)
         {
-            indices[name] = nodes.Count;
-            nodes.Add(new NodeState(state, next));
+            this.indices[name] = this.nodes.Count;
+            this.nodes.Add(new NodeState(state, next));
             return this;
         }
 
@@ -101,104 +137,104 @@ namespace Fsm
             string name,
             Func<D, Flow<D>> next)
         {
-            indices[name] = nodes.Count;
-            nodes.Add(new NodeFlow(next));
+            this.indices[name] = this.nodes.Count;
+            this.nodes.Add(new NodeFlow(next));
             return this;
         }
 
         public Node GetNodeByName(string name)
         {
-            return nodes[indices[name]];
+            return this.nodes[this.indices[name]];
         }
 
         public Node? GetCurrentNode()
         {
-            return currentNode;
+            return this.currentNode;
         }
 
         public void SetCurrentNode(Node node)
         {
-            currentNode = node;
+            this.currentNode = node;
         }
 
         public void SetInitialNode(D data)
         {
-            currentNode = null;
-
             // check force nodes
-            for (int i = 0; i < forceNodes.Count; ++i)
+            for (int i = 0; i < this.forceNodes.Count; ++i)
             {
-                var (condition, node) = forceNodes[i];
-                if (condition(data))
+                var (condition, node) = this.forceNodes[i];
+                if (condition(data) == true)
                 {
-                    currentNode = node;
+                    this.currentNode = node;
                     return;
                 }
             }
 
-            // check normal nodes
-            currentNode = nodes[0];
+            // set first node
+            this.currentNode = this.nodes[0];
         }
 
         public Node? GetNextNode(D data)
         {
             // check force nodes
-            for (int i = 0; i < forceNodes.Count; ++i)
+            for (int i = 0; i < this.forceNodes.Count; ++i)
             {
-                var (condition, node) = forceNodes[i];
-                if (condition(data))
+                var (condition, node) = this.forceNodes[i];
+                if (condition(data) == true)
                     return node;
             }
 
-            if (currentNode is null)
-                return nodes[0];
+            if (this.currentNode is null)
+                return this.nodes[0];
 
-            if (currentNode is NodeState)
+            if (this.currentNode is NodeState currentNodeState)
             {
-                var nextNodeName = ((NodeState)currentNode).next(data);
+                var nextNodeName = currentNodeState.next(data);
                 if (nextNodeName is not null)
                     return this.GetNodeByName(nextNodeName);
 
                 return null;
             }
 
-            return currentNode;
+            return this.currentNode;
         }
 
-        public void SetState(D data, State<D> newState)
+        public State<D>? GetState() => this.currentState;
+
+        public void SetState(State<D> newState)
         {
-            // self transition is not allowed
-            // TODO: maybe somehow allow self transition?
-            if (currentState != newState)
-            {
-                currentState?.OnExit(data);
-                currentState = newState;
-                currentState?.OnEnter(data);
-            }
+            this.currentState = newState;
         }
 
         public void OnEnter(D data)
         {
-            currentState?.OnEnter(data);
+            this.onEnter?.Invoke(data);
+            this.currentState = null;
         }
-
         public void OnExit(D data)
         {
-            currentState?.OnExit(data);
+            this.onExit?.Invoke(data);
+            this.currentState = null;
         }
 
         public void OnUpdate(D data)
         {
-            currentState?.OnUpdate(data);
+            this.currentState?.OnUpdate(data);
+        }
+
+        public void OnFixedUpdate(D data)
+        {
+            this.currentState?.OnFixedUpdate(data);
         }
     }
 
-    class Fsm<D>
+    public class Fsm<D>
     where D : class
     {
         // TODO: expose current state
         public readonly D data;
         private Flow<D> currentFlow;
+        private State<D>? currentState;
 
         public Fsm(D data, Flow<D> startingFlow)
         {
@@ -206,27 +242,27 @@ namespace Fsm
             this.currentFlow = startingFlow;
         }
 
-        private (Flow<D> nextFlow, Flow<D>.NodeState nextNodeState) RecFindNext(Flow<D> currentFlow, Flow<D>.Node currentNode)
+        // NOTE: this function can loop infinitely
+        private (Flow<D> nextFlow, Flow<D>.NodeState nextNodeState) GetNextRecursive(Flow<D> currentFlow, Flow<D>.Node currentNode)
         {
-            // NOTE: this function can loop infinitely
+            // https://www.danielcrabtree.com/blog/152/c-sharp-7-is-operator-patterns-you-wont-need-as-as-often
 
-            if (currentNode is Flow<D>.NodeState)
+            // if current node is state node
+            if (currentNode is Flow<D>.NodeState currentNodeState)
             {
-                var currentNodeState = (Flow<D>.NodeState)currentNode;
                 var nextNodeName = currentNodeState.next(data);
                 if (nextNodeName is not null)
                 {
-                    // transition is found
-                    var node = currentFlow.GetNodeByName(nextNodeName);
-                    return this.RecFindNext(currentFlow, node);
+                    // transition is found (recurse)
+                    return this.GetNextRecursive(currentFlow, currentFlow.GetNodeByName(nextNodeName));
                 }
                 else
                 {
-                    // no more transition is found
-                    // stop recursing
+                    // no more transition is found (stop recursing)
                     return (currentFlow, currentNodeState);
                 }
             }
+            // if curent node is flow node
             else
             {
                 // get next flow
@@ -234,48 +270,48 @@ namespace Fsm
                 nextFlow.SetInitialNode(data);
 
                 // current node of `nextFlow` shouldn't be null after `SetInitialNode()` is called
-                var nextNode = nextFlow.GetCurrentNode()!;
-                return this.RecFindNext(nextFlow, nextNode);
+                return this.GetNextRecursive(nextFlow, nextFlow.GetCurrentNode()!);
+            }
+        }
+
+        public void UpdateFsm()
+        {
+            // try get next node
+            var nextNode = this.currentFlow.GetNextNode(data);
+            if (nextNode is not null)
+            {
+                this.currentFlow.SetCurrentNode(nextNode);
+                var (nextFlow, nextNodeState) = this.GetNextRecursive(this.currentFlow, nextNode);
+
+                // change current flow
+                if (nextFlow != this.currentFlow)
+                {
+                    this.currentFlow.OnExit(data);
+                    this.currentFlow = nextFlow;
+                    this.currentFlow.OnEnter(data);
+                }
+
+                State<D> nextState = nextNodeState.state(data);
+                this.currentFlow.SetState(nextState);
+
+                // change current state
+                if (nextState != this.currentState)
+                {
+                    this.currentState?.OnExit(data);
+                    this.currentState = nextState;
+                    this.currentState.OnEnter(data);
+                }
             }
         }
 
         public void Update()
         {
-            // try get next node
-            var nextNode = currentFlow.GetNextNode(data);
-            if (nextNode is not null)
-            {
-                currentFlow.SetCurrentNode(nextNode);
+            this.currentFlow.OnUpdate(data);
+        }
 
-                if (nextNode is Flow<D>.NodeState)
-                {
-                    // change current state
-                    var nodeState = (Flow<D>.NodeState)nextNode;
-                    var state = nodeState.state(data);
-                    currentFlow.SetState(data, state);
-                }
-                else
-                {
-                    var (nextFlow, nextNodeState) = this.RecFindNext(currentFlow, nextNode);
-
-                    // change current flow
-                    if (nextFlow != currentFlow)
-                    {
-                        currentFlow.OnExit(data);
-                        currentFlow = nextFlow;
-                        currentFlow.OnEnter(data);
-                    }
-
-                    currentFlow.SetCurrentNode(nextNodeState);
-
-                    // change current state
-                    var state = nextNodeState.state(data);
-                    currentFlow.SetState(data, state);
-                }
-            }
-
-            // update current flow
-            currentFlow.OnUpdate(data);
+        public void FixedUpdate()
+        {
+            this.currentFlow.OnFixedUpdate(data);
         }
     }
 }

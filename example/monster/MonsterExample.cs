@@ -13,7 +13,12 @@ static class MonsterExample
 
         // run update every second
         // (this creates a new thread so... my code is not thread safe lol)
-        new Timer(o => monsterFsm.Update(), null, 0, 1000);
+        new Timer(o =>
+            {
+                monsterFsm.UpdateFsm();
+                monsterFsm.Update();
+            },
+            null, 0, 1000);
 
         // get keyboard input
         // press escape to exit

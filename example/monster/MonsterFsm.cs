@@ -84,7 +84,11 @@ static class Monster
             )
             .To(
                 name: "finish",
-                next: data => flowNormal
+                next: data =>
+                {
+                    data.isHit = false;
+                    return flowNormal;
+                }
             );
 
         // create fsm
