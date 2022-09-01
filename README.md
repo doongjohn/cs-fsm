@@ -28,13 +28,13 @@ my ~~shitty~~ take on finite state machine
 interface IState<D>
 where D : class
 {
-    // runs once when entering this state
+    // - runs once when entering this state
     void OnEnter(D data) { }
 
-    // runs once when exiting this state
+    // - runs once when exiting this state
     void OnExit(D data) { }
 
-    // runs every update
+    // - runs every update
     void OnUpdate(D data) { }
 }
 ```
@@ -44,6 +44,12 @@ where D : class
 class Flow<D>
 where D : class
 {
+    // - runs once when entering this flow
+    public Flow<D> OnEnter(Action<D> onEnter) { ... }
+
+    // - runs once when exiting this flow
+    public Flow<D> OnExit(Action<D> onEnter) { ... }
+
     // - this logic is always being checked on every update
     // - if the condition returns true, then it will run its `state`
     // - if the condition returns true, then it will transition to the `next`
@@ -91,6 +97,9 @@ where D : class
     ) { ... }
 
     // - execute this method to update this state machine
+    public void UpdateFsm() { ... }
+
+    // - execute this method to call `OnUpdate` callback of the current state
     public void Update() { ... }
 }
 ```
