@@ -270,22 +270,25 @@ namespace Fsm
                 if (nextNodeName is not null)
                 {
 #if FSM_DEBUG_TRACE
-                    this.nodeTrace.Enqueue(nextNodeName);
-                    if (this.nodeTrace.Count > Fsm<D>.maxTraceCount)
-                        this.nodeTrace.Dequeue();
-
-                    this.recurseCount += 1;
-                    if (this.recurseCount >= Fsm<D>.maxRecurseCount)
+                    if (this.printDebugMsg)
                     {
-                        string msg = $"[FSM] possible infinite recursion detected! ({this.recurseCount} recursion)\n";
-                        while (this.nodeTrace.Count > 0)
+                        this.nodeTrace.Enqueue(nextNodeName);
+                        if (this.nodeTrace.Count > Fsm<D>.maxTraceCount)
+                            this.nodeTrace.Dequeue();
+
+                        this.recurseCount += 1;
+                        if (this.recurseCount >= Fsm<D>.maxRecurseCount)
                         {
-                            msg += "--> " + this.nodeTrace.Dequeue() + "\n";
-                        }
+                            string msg = $"[FSM] possible infinite recursion detected! ({this.recurseCount} recursion)\n";
+                            while (this.nodeTrace.Count > 0)
+                            {
+                                msg += "--> " + this.nodeTrace.Dequeue() + "\n";
+                            }
 #if FSM_DEBUG
-                        FsmDebug.Logger.Error(msg);
+                            FsmDebug.Logger.Error(msg);
 #endif
-                        return (currentFlow, currentNodeState);
+                            return (currentFlow, currentNodeState);
+                        }
                     }
 #endif
                     // transition is found (recurse)
@@ -340,14 +343,14 @@ namespace Fsm
                 if (nextState != this.currentState)
                 {
 #if FSM_DEBUG
-                    if (this.currentState is not null)
+                    if (this.printDebugMsg && this.currentState is not null)
                         FsmDebug.Logger.Log($"[FSM] state exit: {this.currentState.GetType()}");
 #endif
                     this.currentState?.OnExit(data);
                     this.currentState = nextState;
                     this.currentState.OnEnter(data);
 #if FSM_DEBUG
-                    if (this.currentState is not null)
+                    if (this.printDebugMsg)
                         FsmDebug.Logger.Log($"[FSM] state enter: {this.currentState.GetType()}");
 #endif
                 }
