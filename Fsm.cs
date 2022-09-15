@@ -1,8 +1,35 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 
+#if FSM_DEBUG
+namespace FsmDebug
+{
+    public static class Logger
+    {
+        public static void Log(string msg)
+        {
+#if FSM_DEBUG_CONSOLE
+            Console.WriteLine(msg);
+#endif
 #if FSM_DEBUG_UNITY
-using UnityEngine;
+            UnityEngine.Debug.Log(msg);
+#endif
+        }
+        public static void Error(string msg)
+        {
+#if FSM_DEBUG_CONSOLE
+            Console.WriteLine(msg);
+            Environment.Exit(1);
+#endif
+#if FSM_DEBUG_UNITY
+            UnityEngine.Debug.Error(msg);
+            UnityEngine.Debug.Break();
+#endif
+        }
+    }
+}
 #endif
 
 namespace Fsm
@@ -10,46 +37,10 @@ namespace Fsm
     public abstract class State<D>
     where D : class
     {
-        public virtual void OnEnter(D data)
-        {
-#if FSM_DEBUG_CONSOLE
-            Console.WriteLine($"[FSM] state enter: {this.GetType()}");
-#endif
-
-#if FSM_DEBUG_UNITY
-            Debug.Log($"[FSM] state enter: {this.GetType()}");
-#endif
-        }
-        public virtual void OnExit(D data)
-        {
-#if FSM_DEBUG_CONSOLE
-            Console.WriteLine($"[FSM] state exit: {this.GetType()}");
-#endif
-
-#if FSM_DEBUG_UNITY
-            Debug.Log($"[FSM] state exit: {this.GetType()}");
-#endif
-        }
-        public virtual void OnUpdate(D data)
-        {
-#if FSM_DEBUG_CONSOLE
-            Console.WriteLine($"[FSM] state update: {this.GetType()}");
-#endif
-
-#if FSM_DEBUG_UNITY
-            Debug.Log($"[FSM] state update: {this.GetType()}");
-#endif
-        }
-        public virtual void OnFixedUpdate(D data)
-        {
-#if FSM_DEBUG_CONSOLE
-            Console.WriteLine($"[FSM] state fixed update: {this.GetType()}");
-#endif
-
-#if FSM_DEBUG_UNITY
-            Debug.Log($"[FSM] state fixed update: {this.GetType()}");
-#endif
-        }
+        public virtual void OnEnter(D data) { }
+        public virtual void OnExit(D data) { }
+        public virtual void OnUpdate(D data) { }
+        public virtual void OnFixedUpdate(D data) { }
     }
 
     public class Flow<D>
@@ -84,6 +75,10 @@ namespace Fsm
 
         // map node name to index
         private readonly Dictionary<string, int> indices;
+
+#if FSM_DEBUG_TRACE
+        private readonly Dictionary<int, string> names = new();
+#endif
 
         private Node? currentNode;
         private State<D>? currentState;
@@ -128,6 +123,9 @@ namespace Fsm
             Func<D, State<D>> state,
             Func<D, string?> next)
         {
+#if FSM_DEBUG_TRACE
+            this.names[this.nodes.Count] = name;
+#endif
             this.indices[name] = this.nodes.Count;
             this.nodes.Add(new NodeState(state, next));
             return this;
@@ -141,6 +139,16 @@ namespace Fsm
             this.nodes.Add(new NodeFlow(next));
             return this;
         }
+
+#if FSM_DEBUG_TRACE
+        public string GetName(Node node)
+        {
+            var i = this.nodes.IndexOf(node) - 1;
+            if (i > 0)
+                return this.names[i];
+            return "??";
+        }
+#endif
 
         public Node GetNodeByName(string name)
         {
@@ -231,6 +239,14 @@ namespace Fsm
     public class Fsm<D>
     where D : class
     {
+#if FSM_DEBUG_TRACE
+        public bool printDebugMsg = false;
+        private int recurseCount = 0;
+        static private int maxRecurseCount = 80;
+        static private int maxTraceCount = 20;
+        private Queue<string> nodeTrace = new();
+#endif
+
         // TODO: expose current state
         public readonly D data;
         private Flow<D> currentFlow;
@@ -253,6 +269,25 @@ namespace Fsm
                 var nextNodeName = currentNodeState.next(data);
                 if (nextNodeName is not null)
                 {
+#if FSM_DEBUG_TRACE
+                    this.nodeTrace.Enqueue(nextNodeName);
+                    if (this.nodeTrace.Count > Fsm<D>.maxTraceCount)
+                        this.nodeTrace.Dequeue();
+
+                    this.recurseCount += 1;
+                    if (this.recurseCount >= Fsm<D>.maxRecurseCount)
+                    {
+                        string msg = $"[FSM] possible infinite recursion detected! ({this.recurseCount} recursion)\n";
+                        while (this.nodeTrace.Count > 0)
+                        {
+                            msg += "--> " + this.nodeTrace.Dequeue() + "\n";
+                        }
+#if FSM_DEBUG
+                        FsmDebug.Logger.Error(msg);
+#endif
+                        return (currentFlow, currentNodeState);
+                    }
+#endif
                     // transition is found (recurse)
                     return this.GetNextRecursive(currentFlow, currentFlow.GetNodeByName(nextNodeName));
                 }
@@ -280,6 +315,14 @@ namespace Fsm
             var nextNode = this.currentFlow.GetNextNode(data);
             if (nextNode is not null)
             {
+#if FSM_DEBUG_TRACE
+                this.recurseCount = 0;
+                this.nodeTrace.Enqueue(this.currentFlow.GetName(nextNode));
+                if (this.nodeTrace.Count > Fsm<D>.maxTraceCount)
+                    this.nodeTrace.Dequeue();
+#endif
+
+                this.currentFlow.SetCurrentNode(nextNode);
                 var (nextFlow, nextNodeState) = this.GetNextRecursive(this.currentFlow, nextNode);
                 this.currentFlow.SetCurrentNode(nextNodeState);
 
@@ -297,9 +340,17 @@ namespace Fsm
                 // change current state
                 if (nextState != this.currentState)
                 {
+#if FSM_DEBUG
+                    if (this.currentState is not null)
+                        FsmDebug.Logger.Log($"[FSM] state exit: {this.currentState.GetType()}");
+#endif
                     this.currentState?.OnExit(data);
                     this.currentState = nextState;
                     this.currentState.OnEnter(data);
+#if FSM_DEBUG
+                    if (this.currentState is not null)
+                        FsmDebug.Logger.Log($"[FSM] state enter: {this.currentState.GetType()}");
+#endif
                 }
             }
         }

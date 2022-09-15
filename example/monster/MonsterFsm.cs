@@ -42,6 +42,7 @@ static class Monster
                 state: data => idle,
                 next: data =>
                     data.health <= 50 && idle.timer >= 3
+                    // true
                     ? "heal"
                     : null
             )
@@ -50,6 +51,7 @@ static class Monster
                 state: data => selfHeal,
                 next: data =>
                     data.health >= 100
+                    // true
                     ? "idle"
                     : null
             );
