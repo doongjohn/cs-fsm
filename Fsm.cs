@@ -322,7 +322,6 @@ namespace Fsm
                     this.nodeTrace.Dequeue();
 #endif
 
-                this.currentFlow.SetCurrentNode(nextNode);
                 var (nextFlow, nextNodeState) = this.GetNextRecursive(this.currentFlow, nextNode);
                 this.currentFlow.SetCurrentNode(nextNodeState);
 
