@@ -33,21 +33,21 @@ namespace Fsm
         public virtual void OnUpdate(D data)
         {
 #if FSM_DEBUG_CONSOLE
-                        Console.WriteLine($"[FSM] state update: {this.GetType()}");
+            Console.WriteLine($"[FSM] state update: {this.GetType()}");
 #endif
 
 #if FSM_DEBUG_UNITY
-                        Debug.Log($"[FSM] state update: {this.GetType()}");
+            Debug.Log($"[FSM] state update: {this.GetType()}");
 #endif
         }
         public virtual void OnFixedUpdate(D data)
         {
 #if FSM_DEBUG_CONSOLE
-                        Console.WriteLine($"[FSM] state fixed update: {this.GetType()}");
+            Console.WriteLine($"[FSM] state fixed update: {this.GetType()}");
 #endif
 
 #if FSM_DEBUG_UNITY
-                        Debug.Log($"[FSM] state fixed update: {this.GetType()}");
+            Debug.Log($"[FSM] state fixed update: {this.GetType()}");
 #endif
         }
     }
@@ -280,8 +280,8 @@ namespace Fsm
             var nextNode = this.currentFlow.GetNextNode(data);
             if (nextNode is not null)
             {
-                this.currentFlow.SetCurrentNode(nextNode);
                 var (nextFlow, nextNodeState) = this.GetNextRecursive(this.currentFlow, nextNode);
+                this.currentFlow.SetCurrentNode(nextNodeState);
 
                 // change current flow
                 if (nextFlow != this.currentFlow)
