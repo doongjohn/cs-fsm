@@ -9,7 +9,7 @@ my ~~shitty~~ take on finite state machine
 
 ## Features
 
-- hierarchical finite state machine
+- it's some sort of a hierarchical finite state machine
     - state does not contain transition logic (flow does)
 - single file (no dependency)
 - you can use my awesome api
