@@ -24,7 +24,7 @@ namespace FsmDebug
             Environment.Exit(1);
 #endif
 #if FSM_DEBUG_UNITY
-            UnityEngine.Debug.Error(msg);
+            UnityEngine.Debug.LogError(msg);
             UnityEngine.Debug.Break();
 #endif
         }
