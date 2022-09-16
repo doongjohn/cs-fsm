@@ -286,9 +286,7 @@ namespace Fsm
                             {
                                 msg += "--> " + this.nodeTrace.Dequeue() + "\n";
                             }
-#if FSM_DEBUG
                             FsmDebug.Logger.Error(msg);
-#endif
                             return (currentFlow, currentNodeState);
                         }
                     }
