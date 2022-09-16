@@ -239,8 +239,10 @@ namespace Fsm
     public class Fsm<D>
     where D : class
     {
-#if FSM_DEBUG_TRACE
+#if FSM_DEBUG
         public bool printDebugMsg = false;
+#endif
+#if FSM_DEBUG_TRACE
         private int recurseCount = 0;
         static private int maxRecurseCount = 80;
         static private int maxTraceCount = 20;
@@ -269,7 +271,7 @@ namespace Fsm
                 var nextNodeName = currentNodeState.next(data);
                 if (nextNodeName is not null)
                 {
-#if FSM_DEBUG_TRACE
+#if FSM_DEBUG_TRACE && FSM_DEBUG
                     if (this.printDebugMsg)
                     {
                         this.nodeTrace.Enqueue(nextNodeName);
