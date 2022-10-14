@@ -250,6 +250,7 @@ namespace Fsm
 #endif
 
         // TODO: expose current state
+        // TODO: expose previous state
         public readonly D data;
         private Flow<D> currentFlow;
         private State<D>? currentState;

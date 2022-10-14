@@ -82,7 +82,7 @@ where D : class
     ) { ... }
 
     // NOTE: every lambda parameters of `ForceDo`, `ForceTo`, `Do`, `To` must not
-    // mutate outside values because it runs multiple times per update
+    // mutate outside values because it runs multiple times per frame
 }
 ```
 
