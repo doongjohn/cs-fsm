@@ -1,4 +1,4 @@
-﻿class Program
+﻿class Example
 {
     static void Main()
     {

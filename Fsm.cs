@@ -40,6 +40,7 @@ namespace Fsm
         public virtual void OnEnter(D data) { }
         public virtual void OnExit(D data) { }
         public virtual void OnUpdate(D data) { }
+        public virtual void OnLateUpdate(D data) { }
         public virtual void OnFixedUpdate(D data) { }
     }
 
@@ -51,11 +52,13 @@ namespace Fsm
         {
             public Func<D, State<D>> state;
             public Func<D, string?> next;
+            public bool restart;
 
-            public NodeState(Func<D, State<D>> state, Func<D, string?> next)
+            public NodeState(Func<D, State<D>> state, Func<D, string?> next, bool restart)
             {
                 this.state = state;
                 this.next = next;
+                this.restart = restart;
             }
         }
         public class NodeFlow : Node
@@ -77,7 +80,7 @@ namespace Fsm
         private readonly Dictionary<string, int> indices;
 
 #if FSM_DEBUG_TRACE
-        private readonly Dictionary<int, string> names = new();
+        private readonly Dictionary<int, string> debugFlowNames = new();
 #endif
 
         private Node? currentNode;
@@ -104,9 +107,10 @@ namespace Fsm
         public Flow<D> ForceDo(
             Func<D, bool> condition,
             Func<D, State<D>> state,
-            Func<D, string?> next)
+            Func<D, string?> next,
+            bool restart = false)
         {
-            this.forceNodes.Add((condition, new NodeState(state, next)));
+            this.forceNodes.Add((condition, new NodeState(state, next, restart)));
             return this;
         }
 
@@ -121,13 +125,14 @@ namespace Fsm
         public Flow<D> Do(
             string name,
             Func<D, State<D>> state,
-            Func<D, string?> next)
+            Func<D, string?> next,
+            bool restart = false)
         {
 #if FSM_DEBUG_TRACE
-            this.names[this.nodes.Count] = name;
+            this.debugFlowNames[this.nodes.Count] = name;
 #endif
             this.indices[name] = this.nodes.Count;
-            this.nodes.Add(new NodeState(state, next));
+            this.nodes.Add(new NodeState(state, next, restart));
             return this;
         }
 
@@ -145,7 +150,7 @@ namespace Fsm
         {
             var i = this.nodes.IndexOf(node) - 1;
             if (i > 0)
-                return this.names[i];
+                return this.debugFlowNames[i];
             return "??";
         }
 #endif
@@ -228,6 +233,11 @@ namespace Fsm
         public void OnUpdate(D data)
         {
             this.currentState?.OnUpdate(data);
+        }
+
+        public void OnLateUpdate(D data)
+        {
+            this.currentState?.OnLateUpdate(data);
         }
 
         public void OnFixedUpdate(D data)
@@ -341,7 +351,7 @@ namespace Fsm
                 this.currentFlow.SetState(nextState);
 
                 // change current state
-                if (nextState != this.currentState)
+                if (nextNodeState.restart || nextState != this.currentState)
                 {
 #if FSM_DEBUG
                     if (this.printDebugMsg && this.currentState is not null)
@@ -361,6 +371,11 @@ namespace Fsm
         public void Update()
         {
             this.currentFlow.OnUpdate(data);
+        }
+
+        public void LateUpdate()
+        {
+            this.currentFlow.OnLateUpdate(data);
         }
 
         public void FixedUpdate()
