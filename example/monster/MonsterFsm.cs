@@ -26,7 +26,6 @@ static class Monster
         var hitStagger = new StateHitStagger();
         var followTarget = new StateFollowTarget();
         var attackTarget = new StateAttackTarget();
-        var goHome = new StateGoHome();
 
         var flowNormal = new Flow<MonsterData>();
         var flowHitStagger = new Flow<MonsterData>();

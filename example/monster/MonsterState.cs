@@ -72,16 +72,3 @@ class StateHitStagger : StateMonster
         data.isHit = false;
     }
 }
-
-class StateGoHome : StateMonster
-{
-    public override void OnEnter(MonsterData data)
-    {
-        Console.WriteLine($"I'm going home!");
-    }
-    public override void OnUpdate(MonsterData data)
-    {
-        data.targetDistance += data.targetDistance < 50 ? 5 : -5;
-        Console.WriteLine($"distance = {data.targetDistance}");
-    }
-}
