@@ -7,7 +7,7 @@
     <!-- Unity supports C# 9.0 -->
     <LangVersion>9.0</LangVersion>
 
-    <!-- <DefineConstants>FSM_DEBUG;FSM_DEBUG_CONSOLE;FSM_DEBUG_TRACE;</DefineConstants> -->
+    <DefineConstants>FSM_DEBUG_CONSOLE;</DefineConstants>
 
     <!-- <ImplicitUsings>enable</ImplicitUsings> -->
     <Nullable>enable</Nullable>

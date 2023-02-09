@@ -1,5 +1,9 @@
 #nullable enable
 
+#if FSM_DEBUG_CONSOLE || FSM_DEBUG_UNITY
+#define FSM_DEBUG
+#endif
+
 using System;
 using System.Collections.Generic;
 
@@ -79,7 +83,7 @@ namespace Fsm
         // map node name to index
         private readonly Dictionary<string, int> indices;
 
-#if FSM_DEBUG_TRACE
+#if FSM_DEBUG
         private readonly Dictionary<int, string> debugFlowNames = new();
 #endif
 
@@ -128,7 +132,7 @@ namespace Fsm
             Func<D, string?> next,
             bool restart = false)
         {
-#if FSM_DEBUG_TRACE
+#if FSM_DEBUG
             this.debugFlowNames[this.nodes.Count] = name;
 #endif
             this.indices[name] = this.nodes.Count;
@@ -145,7 +149,7 @@ namespace Fsm
             return this;
         }
 
-#if FSM_DEBUG_TRACE
+#if FSM_DEBUG
         public string GetName(Node node)
         {
             var i = this.nodes.IndexOf(node) - 1;
@@ -251,12 +255,10 @@ namespace Fsm
     {
 #if FSM_DEBUG
         public bool printDebugMsg = false;
-#endif
-#if FSM_DEBUG_TRACE
-        private int recurseCount = 0;
-        static private int maxRecurseCount = 80;
-        static private int maxTraceCount = 20;
-        private Queue<string> nodeTrace = new();
+        private int currentRecurseCount = 0;
+        private static int maxRecurseCount = 80;
+        private static int maxTraceCount = 20;
+        private Queue<string> nodeTraceQueue = new();
 #endif
 
         // TODO: expose current state
@@ -282,20 +284,20 @@ namespace Fsm
                 var nextNodeName = currentNodeState.next(data);
                 if (nextNodeName is not null)
                 {
-#if FSM_DEBUG_TRACE && FSM_DEBUG
+#if FSM_DEBUG
                     if (this.printDebugMsg)
                     {
-                        this.nodeTrace.Enqueue(nextNodeName);
-                        if (this.nodeTrace.Count > Fsm<D>.maxTraceCount)
-                            this.nodeTrace.Dequeue();
+                        this.nodeTraceQueue.Enqueue(nextNodeName);
+                        if (this.nodeTraceQueue.Count > Fsm<D>.maxTraceCount)
+                            this.nodeTraceQueue.Dequeue();
 
-                        this.recurseCount += 1;
-                        if (this.recurseCount >= Fsm<D>.maxRecurseCount)
+                        this.currentRecurseCount += 1;
+                        if (this.currentRecurseCount >= Fsm<D>.maxRecurseCount)
                         {
-                            string msg = $"[FSM] possible infinite recursion detected! ({this.recurseCount} recursion)\n";
-                            while (this.nodeTrace.Count > 0)
+                            string msg = $"[FSM] possible infinite recursion detected! ({this.currentRecurseCount} recursion)\n";
+                            while (this.nodeTraceQueue.Count > 0)
                             {
-                                msg += "--> " + this.nodeTrace.Dequeue() + "\n";
+                                msg += "--> " + this.nodeTraceQueue.Dequeue() + "\n";
                             }
                             FsmDebug.Logger.Error(msg);
                             return (currentFlow, currentNodeState);
@@ -329,11 +331,11 @@ namespace Fsm
             var nextNode = this.currentFlow.GetNextNode(data);
             if (nextNode is not null)
             {
-#if FSM_DEBUG_TRACE
-                this.recurseCount = 0;
-                this.nodeTrace.Enqueue(this.currentFlow.GetName(nextNode));
-                if (this.nodeTrace.Count > Fsm<D>.maxTraceCount)
-                    this.nodeTrace.Dequeue();
+#if FSM_DEBUG
+                this.currentRecurseCount = 0;
+                this.nodeTraceQueue.Enqueue(this.currentFlow.GetName(nextNode));
+                if (this.nodeTraceQueue.Count > Fsm<D>.maxTraceCount)
+                    this.nodeTraceQueue.Dequeue();
 #endif
 
                 var (nextFlow, nextNodeState) = this.GetNextRecursive(this.currentFlow, nextNode);

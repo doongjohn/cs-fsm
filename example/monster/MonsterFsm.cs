@@ -8,7 +8,7 @@ class MonsterData
     public bool isHealing = false;
     public bool isAttackSuccess = false;
 
-    public void Damage(int amount)
+    public void DamageHp(int amount)
     {
         isHit = true;
         health -= amount;
@@ -36,8 +36,7 @@ static class Monster
             .ForceTo(
                 condition: data => data.isHit,
                 next: data => flowHitStagger
-            )
-            .Do(
+            ).Do(
                 name: "idle",
                 state: data => idle,
                 next: data =>
@@ -45,8 +44,7 @@ static class Monster
                     // true
                     ? "heal"
                     : null
-            )
-            .Do(
+            ).Do(
                 name: "heal",
                 state: data => selfHeal,
                 next: data =>
@@ -60,8 +58,7 @@ static class Monster
             .ForceTo(
                 condition: data => !data.isHit,
                 next: data => flowHitResponse
-            )
-            .Do(
+            ).Do(
                 name: "stagger",
                 state: data => hitStagger,
                 next: data => null
@@ -75,16 +72,14 @@ static class Monster
                     data.targetDistance == 0
                     ? "attack"
                     : null
-            )
-            .Do(
+            ).Do(
                 name: "attack",
                 state: data => attackTarget,
                 next: data =>
                     data.isAttackSuccess
                     ? "finish"
                     : null
-            )
-            .To(
+            ).To(
                 name: "finish",
                 next: data =>
                 {

@@ -10,6 +10,7 @@ static class MonsterExample
 
         // create fsm
         var monsterFsm = Monster.createFsm(monsterData);
+        monsterFsm.printDebugMsg = true; // you must define FSM_DEBUG_CONSOLE to use this
 
         // run update every second
         // (this creates a new thread so... my code is not thread safe lol)
@@ -20,30 +21,30 @@ static class MonsterExample
             },
             null, 0, 1000);
 
+        Console.WriteLine("* press enter to attack.");
+        Console.WriteLine("* press left/right arraw to move.");
+        Console.WriteLine("* press escape to exit.");
+
         // get keyboard input
-        // press escape to exit
         ConsoleKeyInfo key = new();
         do
         {
-            // monsterFsm.Update();
-
             switch (key.Key)
             {
                 case ConsoleKey.Enter:
-                    monsterData.Damage(10);
-                    Console.WriteLine("[input] hit monster -10");
+                    monsterData.DamageHp(10);
+                    Console.WriteLine($"[input] attack: monster hp - 10 = {monsterData.health}");
                     break;
 
                 case ConsoleKey.RightArrow:
                     monsterData.targetDistance += 10;
-                    Console.WriteLine($"[input] distance + 10 = {monsterData.targetDistance}");
+                    Console.WriteLine($"[input] move: distance + 10 = {monsterData.targetDistance}");
                     break;
 
                 case ConsoleKey.LeftArrow:
                     monsterData.targetDistance -= 10;
-                    if (monsterData.targetDistance < 0)
-                        monsterData.targetDistance = 0;
-                    Console.WriteLine($"[input] distance - 10 = {monsterData.targetDistance}");
+                    monsterData.targetDistance = Math.Max(monsterData.targetDistance, 0);
+                    Console.WriteLine($"[input] move: distance - 10 = {monsterData.targetDistance}");
                     break;
             }
         } while ((key = Console.ReadKey(true)).Key != ConsoleKey.Escape);

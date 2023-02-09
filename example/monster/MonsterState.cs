@@ -40,7 +40,7 @@ class StateFollowTarget : StateMonster
 {
     public override void OnEnter(MonsterData data)
     {
-        Console.WriteLine($"start following target...");
+        Console.WriteLine($"monster starts following you...");
     }
     public override void OnUpdate(MonsterData data)
     {
@@ -61,16 +61,16 @@ class StateAttackTarget : StateMonster
     public override void OnUpdate(MonsterData data)
     {
         data.isAttackSuccess = true;
-        Console.WriteLine($"I punch you!");
+        Console.WriteLine($"monster hits you...");
     }
 }
 
 class StateHitStagger : StateMonster
 {
-    public override void OnUpdate(MonsterData data)
+    public override void OnEnter(MonsterData data)
     {
         data.isHit = false;
-        Console.WriteLine($"Oh no! I got hit!");
+        Console.WriteLine($"monster took damage...");
     }
 }
 
