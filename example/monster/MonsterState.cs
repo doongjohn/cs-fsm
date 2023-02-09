@@ -8,7 +8,6 @@ class StateIdle : StateMonster
     public override void OnExit(MonsterData data)
     {
         timer = 0;
-        base.OnExit(data);
     }
     public override void OnUpdate(MonsterData data)
     {
@@ -22,12 +21,10 @@ class StateSelfHeal : StateMonster
     public override void OnEnter(MonsterData data)
     {
         data.isHealing = true;
-        base.OnEnter(data);
     }
     public override void OnExit(MonsterData data)
     {
         data.isHealing = false;
-        base.OnExit(data);
     }
     public override void OnUpdate(MonsterData data)
     {
@@ -47,7 +44,7 @@ class StateFollowTarget : StateMonster
         data.targetDistance -= 5;
         if (data.targetDistance < 0)
             data.targetDistance = 0;
-        Console.WriteLine($"distance = {data.targetDistance}");
+        Console.WriteLine($"following: distance - 5 = {data.targetDistance}");
     }
 }
 
@@ -56,7 +53,6 @@ class StateAttackTarget : StateMonster
     public override void OnExit(MonsterData data)
     {
         data.isAttackSuccess = false;
-        base.OnExit(data);
     }
     public override void OnUpdate(MonsterData data)
     {
@@ -69,8 +65,11 @@ class StateHitStagger : StateMonster
 {
     public override void OnEnter(MonsterData data)
     {
+        Console.WriteLine($"monster got staggered...");
+    }
+    public override void OnUpdate(MonsterData data)
+    {
         data.isHit = false;
-        Console.WriteLine($"monster took damage...");
     }
 }
 
