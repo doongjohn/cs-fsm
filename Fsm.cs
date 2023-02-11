@@ -54,8 +54,14 @@ namespace Fsm
         public abstract class Node { }
         public class NodeState : Node
         {
+            // state object
             public Func<D, State<D>> state;
+
+            // next node name
             public Func<D, string?> next;
+
+            // true  => run OnExit/OnEnter even if the current state is same as the next state
+            // false => don't run OnExit/OnEnter if the current state is same as the next state
             public bool restart;
 
             public NodeState(Func<D, State<D>> state, Func<D, string?> next, bool restart)
@@ -67,6 +73,7 @@ namespace Fsm
         }
         public class NodeFlow : Node
         {
+            // next flow object
             public Func<D, Flow<D>> next;
 
             public NodeFlow(Func<D, Flow<D>> next)
@@ -150,7 +157,7 @@ namespace Fsm
         }
 
 #if FSM_DEBUG
-        public string GetName(Node node)
+        public string GetNodeName(Node node)
         {
             var i = this.nodes.IndexOf(node) - 1;
             if (i > 0)
@@ -255,9 +262,9 @@ namespace Fsm
     {
 #if FSM_DEBUG
         public bool printDebugMsg = false;
+        public int maxRecurseCount = 80;
+        public int maxTraceCount = 20;
         private int currentRecurseCount = 0;
-        private static int maxRecurseCount = 80;
-        private static int maxTraceCount = 20;
         private Queue<string> nodeTraceQueue = new();
 #endif
 
@@ -273,7 +280,7 @@ namespace Fsm
             this.currentFlow = startingFlow;
         }
 
-        // NOTE: this function can loop infinitely
+        // NOTE: this function can recurse infinitely
         private (Flow<D> nextFlow, Flow<D>.NodeState nextNodeState) GetNextRecursive(Flow<D> currentFlow, Flow<D>.Node currentNode)
         {
             // https://www.danielcrabtree.com/blog/152/c-sharp-7-is-operator-patterns-you-wont-need-as-as-often
@@ -288,11 +295,11 @@ namespace Fsm
                     if (this.printDebugMsg)
                     {
                         this.nodeTraceQueue.Enqueue(nextNodeName);
-                        if (this.nodeTraceQueue.Count > Fsm<D>.maxTraceCount)
+                        if (this.nodeTraceQueue.Count > this.maxTraceCount)
                             this.nodeTraceQueue.Dequeue();
 
                         this.currentRecurseCount += 1;
-                        if (this.currentRecurseCount >= Fsm<D>.maxRecurseCount)
+                        if (this.currentRecurseCount >= this.maxRecurseCount)
                         {
                             string msg = $"[FSM] possible infinite recursion detected! ({this.currentRecurseCount} recursion)\n";
                             while (this.nodeTraceQueue.Count > 0)
@@ -333,8 +340,8 @@ namespace Fsm
             {
 #if FSM_DEBUG
                 this.currentRecurseCount = 0;
-                this.nodeTraceQueue.Enqueue(this.currentFlow.GetName(nextNode));
-                if (this.nodeTraceQueue.Count > Fsm<D>.maxTraceCount)
+                this.nodeTraceQueue.Enqueue(this.currentFlow.GetNodeName(nextNode));
+                if (this.nodeTraceQueue.Count > this.maxTraceCount)
                     this.nodeTraceQueue.Dequeue();
 #endif
 
